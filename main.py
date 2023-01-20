@@ -1,6 +1,5 @@
 import streamlit as st
 import os
-import sys
 import shutil
 from tqdm import tqdm
 from glob import glob
@@ -12,20 +11,45 @@ from function import *
 
 INPUT_FOLDER_PATH = 'saved_images'
 OUTPUT_FOLDER_PATH = 'predicted_masks'
-MODEL_PARAMETERS_PATH = 'best_model.pth'
-ZIP_FILE_PATH = 'predicted_masks.zip'
+MODEL_PARAMETERS_PATH = 'best_model.pth' # soybean masks
+MODEL_PARAMETERS_2_PATH = 'best_model_2.pth' # soybean and stage masks
 
-st.title('Prediction of soybean masks')
+if os.path.isdir(INPUT_FOLDER_PATH):
+    shutil.rmtree(INPUT_FOLDER_PATH) # Delete a saved images folder
+os.makedirs(INPUT_FOLDER_PATH, exist_ok=True) # Make a folder for saved images
+    
+if os.path.isdir(OUTPUT_FOLDER_PATH):
+    shutil.rmtree(OUTPUT_FOLDER_PATH) # Delete a predicted masks folder
+os.makedirs(OUTPUT_FOLDER_PATH, exist_ok=True) # Make a folder for predicted masks
+
+st.title('Mask Prediction')
 
 uploaded_files = st.file_uploader('Please upload your image files', type=['png', 'jpg'], accept_multiple_files=True)
 latest_iteration = st.empty()
 if uploaded_files is not None:
     for i in range(len(uploaded_files)):
         latest_iteration.text(f'Uploading images {i+1}')
-         
-start = st.button('Start prediction')     
+
+selected_type = st.radio(
+    'Please select which mask type you predict',
+    ['soybean', 'soybean & stage']
+)
+if selected_type == 'soybean':
+    st.write('You selected "soybean".')
+else:
+    st.write('You selected "soybean & stage".')
+            
+start = st.button('Start prediction')    
+ 
 if start:
+    if os.path.isdir(INPUT_FOLDER_PATH):
+        shutil.rmtree(INPUT_FOLDER_PATH) # Delete a saved images folder
     os.makedirs(INPUT_FOLDER_PATH, exist_ok=True) # Make a folder for saved images
+    
+    if os.path.isdir(OUTPUT_FOLDER_PATH):
+        shutil.rmtree(OUTPUT_FOLDER_PATH) # Delete a predicted masks folder
+    os.makedirs(OUTPUT_FOLDER_PATH, exist_ok=True) # Make a folder for predicted masks
+    
     for uploaded_file in uploaded_files:
         with open(os.path.join(INPUT_FOLDER_PATH,uploaded_file.name),"wb") as f: 
             f.write(uploaded_file.getbuffer()) 
@@ -37,15 +61,21 @@ if start:
         DATA_DIR = img_path_list
         ENCODER = 'resnet34'
         ENCODER_WEIGHTS = 'imagenet'
-        CLASSES = ['background', 'soybean', 'stake']
         ACTIVATION = 'softmax2d'
-        DEVICE = 'cpu' # cpu or cuda
-        
-        model = prepare_model(ENCODER, ENCODER_WEIGHTS, CLASSES, ACTIVATION, DEVICE, MODEL_PARAMETERS_PATH)
+        DEVICE = 'cuda' # cpu or cuda
+    
         dataset = create_dataset(DATA_DIR, ENCODER, ENCODER_WEIGHTS)
         
-        os.makedirs(OUTPUT_FOLDER_PATH, exist_ok=True)
-        inference(model, dataset, DATA_DIR, CLASSES, DEVICE, OUTPUT_FOLDER_PATH)
+        if selected_type == 'soybean':
+            CLASSES = ['background', 'soybean', 'stake']
+            model = prepare_model(ENCODER, ENCODER_WEIGHTS, CLASSES, ACTIVATION, DEVICE, MODEL_PARAMETERS_PATH)
+            inference(model, dataset, DATA_DIR, CLASSES, DEVICE, OUTPUT_FOLDER_PATH)
+            ZIP_FILE_PATH = 'soybean_masks.zip'
+        else:
+            CLASSES = ['background', 'soybean', 'stake', 'stage']
+            model = prepare_model(ENCODER, ENCODER_WEIGHTS, CLASSES, ACTIVATION, DEVICE, MODEL_PARAMETERS_2_PATH)
+            inference_2(model, dataset, DATA_DIR, CLASSES, DEVICE, OUTPUT_FOLDER_PATH)
+            ZIP_FILE_PATH = 'soybean_stage_masks.zip'
         
         succeeded_process = st.success('Finished!')
         
@@ -80,8 +110,3 @@ if start:
         st.error('Please upload your image files')
 
 uploaded_files = st.empty()
-
-
-
-    
-   

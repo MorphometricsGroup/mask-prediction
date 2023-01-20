@@ -51,7 +51,7 @@ def prepare_model(encoder, encoder_weights, classes, activation, device, model_p
     model.to(device)
     
     # Install trained parameters in model
-    model.load_state_dict(torch.load(model_parameters_path, map_location=device))
+    model.load_state_dict(torch.load(model_parameters_path, map_location=device)) # cpu or cuda
     model.eval()
     
     return model
@@ -101,7 +101,7 @@ def inference(model, dataset, data_dir, classes, device, mask_folder_path):
         pr_mask = model.predict(x_tensor)
         pr_mask = pr_mask.squeeze().cpu().numpy()
         pr_mask = one_hot_function(pr_mask)
-        pr_mask = pr_mask[classes.index('soybean')] # Extract only soybean
+        pr_mask = pr_mask[classes.index('soybean')] # Extract soybean
         image_path = data_dir[i]
         assert dataset.image_paths[i] == image_path, "Not match pathes"
         raw_image = cv2.imread(image_path)
@@ -111,4 +111,30 @@ def inference(model, dataset, data_dir, classes, device, mask_folder_path):
         pr_mask_path = os.path.normpath(os.path.join(mask_folder_path, os.path.basename(data_dir[i]).split('.')[0]+'.png')) # Save masks as PNG format
         cv2.imwrite(pr_mask_path, pr_mask)
         os.remove(image_path) # Delete image file
+
+def inference_2(model, dataset, data_dir, classes, device, mask_folder_path):
+    def one_hot_function(pr_mask):
+        max_index_number = pr_mask.argmax(axis=0) 
+        for i in range(len(pr_mask)):
+            one_hot_vector = (max_index_number == i) 
+            pr_mask[i] = one_hot_vector
+        return pr_mask
     
+    for i in stqdm(range(len(dataset)), ncols=80):
+        image = dataset[i]
+        x_tensor = image.to(device).unsqueeze(0)
+        pr_mask = model.predict(x_tensor)
+        pr_mask = pr_mask.squeeze().cpu().numpy()
+        pr_mask = one_hot_function(pr_mask)
+        pr_mask_1 = pr_mask[classes.index('soybean')] # Extract soybean
+        pr_mask_2 = pr_mask[classes.index('stage')] # Extract stage
+        pr_mask = pr_mask_1 + pr_mask_2
+        image_path = data_dir[i]
+        assert dataset.image_paths[i] == image_path, "Not match pathes"
+        raw_image = cv2.imread(image_path)
+        height, width = raw_image.shape[:2]
+        pr_mask = A.resize(pr_mask, height, width)
+        pr_mask = pr_mask * 255
+        pr_mask_path = os.path.normpath(os.path.join(mask_folder_path, os.path.basename(data_dir[i]).split('.')[0]+'.png')) # Save masks as PNG format
+        cv2.imwrite(pr_mask_path, pr_mask)
+        os.remove(image_path) # Delete image file
