@@ -1,6 +1,5 @@
 import streamlit as st
 import os
-import sys
 import shutil
 from tqdm import tqdm
 from glob import glob
@@ -14,7 +13,6 @@ INPUT_FOLDER_PATH = 'saved_images'
 OUTPUT_FOLDER_PATH = 'predicted_masks'
 MODEL_PARAMETERS_PATH = 'best_model.pth' # soybean masks
 MODEL_PARAMETERS_2_PATH = 'best_model_2.pth' # soybean and stage masks
-ZIP_FILE_PATH = 'predicted_masks.zip'
 
 if os.path.isdir(INPUT_FOLDER_PATH):
     shutil.rmtree(INPUT_FOLDER_PATH) # Delete a saved images folder
@@ -64,7 +62,7 @@ if start:
         ENCODER = 'resnet34'
         ENCODER_WEIGHTS = 'imagenet'
         ACTIVATION = 'softmax2d'
-        DEVICE = 'cpu' # cpu or cuda
+        DEVICE = 'cuda' # cpu or cuda
     
         dataset = create_dataset(DATA_DIR, ENCODER, ENCODER_WEIGHTS)
         
@@ -72,10 +70,12 @@ if start:
             CLASSES = ['background', 'soybean', 'stake']
             model = prepare_model(ENCODER, ENCODER_WEIGHTS, CLASSES, ACTIVATION, DEVICE, MODEL_PARAMETERS_PATH)
             inference(model, dataset, DATA_DIR, CLASSES, DEVICE, OUTPUT_FOLDER_PATH)
+            ZIP_FILE_PATH = 'soybean_masks.zip'
         else:
             CLASSES = ['background', 'soybean', 'stake', 'stage']
             model = prepare_model(ENCODER, ENCODER_WEIGHTS, CLASSES, ACTIVATION, DEVICE, MODEL_PARAMETERS_2_PATH)
             inference_2(model, dataset, DATA_DIR, CLASSES, DEVICE, OUTPUT_FOLDER_PATH)
+            ZIP_FILE_PATH = 'soybean_stage_masks.zip'
         
         succeeded_process = st.success('Finished!')
         
