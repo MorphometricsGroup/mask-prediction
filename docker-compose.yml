@@ -10,9 +10,9 @@ services:
     working_dir: "/home/usr/mask-prediction"
     tty: true
     expose:
-      - "8888"
+      - "8501"
     ports:
-      - "8888:8888"
+      - "8501:8501"
     volumes:
       - ./:/home/usr/mask-prediction/
     environment: 
@@ -23,4 +23,4 @@ services:
         reservations:
           devices:
             - capabilities: [gpu]
-    command: "streamlit run main.py"
+    command: "streamlit run main.py --server.port=8501 --server.address=127.0.0.1"
