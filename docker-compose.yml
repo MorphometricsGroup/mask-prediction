@@ -1,0 +1,26 @@
+version: "3"
+services:
+  python:
+    restart: always
+    build:
+      context: .
+      dockerfile: Dockerfile
+    shm_size: "2gb"
+    container_name: mask-prediction
+    working_dir: "/home/usr/mask-prediction"
+    tty: true
+    expose:
+      - "8888"
+    ports:
+      - "8888:8888"
+    volumes:
+      - ./:/home/usr/mask-prediction/
+    environment: 
+      - NVIDIA_VISIBLE_DEVICES=all
+      - NVIDIA_DRIVER_CAPABILITIES=all
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - capabilities: [gpu]
+    command: "streamlit run main.py"
