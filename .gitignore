@@ -1,3 +1,4 @@
+.devcontainer/
 predicted_masks
 saved_images
 test.ipynb
